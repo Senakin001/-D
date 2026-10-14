@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポリ酢酸ビニル（PVAc）誘電緩和測定 — 自動計算＆グラフ作成アプリ</title>
+<style>
+  :root {
+    --navy: #1b365d;
+    --teal: #2c6b74;
+    --bg: #f4f7f9;
+    --card: #ffffff;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #e0f2fe;
+    --input-bg: #fffbeb;
+    --c56: #2563eb;
+    --c60: #059669;
+    --c64: #d97706;
+    --c68: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(135deg, var(--navy), var(--teal));
+    color: #fff; padding: 20px 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  header h1 { margin: 0 0 6px 0; font-size: 1.35rem; }
+  header p { margin: 0; font-size: 0.9rem; opacity: 0.92; }
+  .container { max-width: 1380px; margin: 0 auto; padding: 20px; }
+  .card {
+    background: var(--card); border-radius: 10px;
+    border: 1px solid var(--border); padding: 18px 20px;
+    margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    margin: 0 0 12px 0; font-size: 1.1rem; color: var(--navy);
+    border-bottom: 2px solid var(--teal); padding-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .badge {
+    display: inline-block; background: var(--accent); color: var(--navy);
+    font-size: 0.78rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  }
+  .params-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(195px, 1fr)); gap: 12px;
+  }
+  .param-box {
+    background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  }
+  .param-box label { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .param-box input, .param-box select {
+    width: 100%; padding: 6px 8px; font-size: 0.92rem; font-weight: 600;
+    border: 1px solid #94a3b8; border-radius: 5px; background: var(--input-bg);
+  }
+  .param-box .auto-val {
+    font-size: 0.95rem; font-weight: 700; color: var(--navy); padding: 5px 0;
+  }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px;
+    padding-top: 12px; border-top: 1px dashed var(--border);
+  }
+  button {
+    background: var(--navy); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.9; }
+  button.secondary { background: var(--teal); }
+  button.warn { background: #b45309; }
+  .charts-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 18px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+  .chart-card {
+    background: var(--card); border-radius: 10px; border: 1px solid var(--border);
+    padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .chart-card h3 {
+    margin: 0 0 8px 0; font-size: 1rem; color: var(--navy);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  canvas {
+    width: 100%; height: 360px; display: block; background: #ffffff;
+    border: 1px solid #e2e8f0; border-radius: 6px;
+  }
+  .chart-note { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.86rem;
+  }
+  th, td {
+    border: 1px solid var(--border); padding: 7px 9px; text-align: right;
+  }
+  th {
+    background: var(--navy); color: #fff; font-weight: 600; text-align: center;
+  }
+  td.left { text-align: left; }
+  td.center { text-align: center; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td input, td select {
+    width: 90px; padding: 4px 6px; text-align: right;
+    border: 1px solid #94a3b8; border-radius: 4px; background: var(--input-bg);
+    font-size: 0.85rem;
+  }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn {
+    background: #e2e8f0; color: var(--text); padding: 7px 16px;
+    border-radius: 6px; font-weight: 700; cursor: pointer; border: none;
+  }
+  .tab-btn.active { background: var(--navy); color: #fff; }
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px;
+    margin-top: 12px;
+  }
+  .kpi-card {
+    background: #f0f9ff; border-left: 4px solid var(--navy);
+    padding: 10px 14px; border-radius: 6px;
+  }
+  .kpi-card .k-title { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+  .kpi-card .k-val { font-size: 1.2rem; font-weight: 800; color: var(--navy); margin-top: 2px; }
+  .kpi-card .k-sub { font-size: 0.76rem; color: var(--muted); }
+  .formula-box {
+    background: #f8fafc; border-left: 4px solid var(--teal);
+    padding: 10px 14px; margin: 8px 0; font-size: 0.86rem; border-radius: 4px;
+  }
+  code {
+    background: #e2e8f0; padding: 2px 6px; border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.84rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>ポリ酢酸ビニル（PVAc）誘電緩和測定 — 課題(A)〜(D) 自動計算＆グラフ描画アプリ</h1>
+  <p>測定データ（56℃・60℃・64℃・68℃）の組込済｜数値を変更すると ε', ε'', Cole-Cole円弧フィッティング, 理論式(26), アレニウスプロット（活性化エネルギー H）が自動更新されます</p>
+</header>
+
+<div class="container">
+  <!-- 1. 定数設定パネル -->
+  <div class="card">
+    <h2>
+      <span>1. 試料寸法・課題(C) 理論式(26)の物理定数（黄色枠は編集可能）</span>
+      <span class="badge">リアルタイム自動計算</span>
+    </h2>
+    <div class="params-grid">
+      <div class="param-box">
+        <label>電極面積 A [m²]</label>
+        <input type="number" id="inp_A" value="0.00049" step="0.00001" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>試料厚さ d [m]</label>
+        <input type="number" id="inp_d" value="0.0002" step="0.00001" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>真空誘電率 ε₀ [F/m]</label>
+        <input type="number" id="inp_eps0" value="8.854e-12" step="1e-15" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>幾何電気容量 C₀ = ε₀A/d [pF]</label>
+        <div class="auto-val" id="out_C0">-</div>
+      </div>
+      <div class="param-box">
+        <label>光学的屈折率 n [-]</label>
+        <input type="number" id="inp_n" value="1.45" step="0.01" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>双極子1個の能率 μ [C·m]</label>
+        <input type="number" id="inp_mu" value="6.34e-30" step="1e-32" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>試料密度 ρ [kg/m³]</label>
+        <input type="number" id="inp_rho" value="1180" step="10" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>モノマーモル質量 M₀ [kg/mol]</label>
+        <input type="number" id="inp_M0" value="0.08609" step="0.0001" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>ボルツマン定数 k [J/K]</label>
+        <input type="number" id="inp_k" value="1.380e-23" step="1e-26" oninput="recalcAll()">
+      </div>
+      <div class="param-box">
+        <label>単位体積中の双極子数 N [個/m³]</label>
+        <div class="auto-val" id="out_N">-</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <label style="font-size:0.86rem; font-weight:600;">
+        課題(D)の f_max 算出方法：
+        <select id="sel_fmax_mode" onchange="recalcAll()" style="padding:5px 8px; border-radius:5px; font-weight:600;">
+          <option value="discrete">測定点の最大値そのまま（50, 150, 500, 1500 Hz）</option>
+          <option value="interp">ピーク付近の二次関数補間による精密頂点</option>
+        </select>
+      </label>
+      <button class="warn" onclick="toggleFix64()">64℃の5kHz/6kHzデータ入替を補正/元に戻す</button>
+      <button class="secondary" onclick="resetData()">初期データにリセット</button>
+      <span id="fix64_status" style="font-size:0.82rem; color:var(--muted);">※現在：元のエクセル測定値そのまま</span>
+    </div>
+  </div>
+
+  <!-- 2. 課題(A)〜(D) 4大グラフ -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>
+        <span>課題(A)-1：比誘電率 ε' vs 周波数 f（片対数グラフ）</span>
+        <button onclick="downloadCanvas('chart_eps1', '課題A_イプシロンダッシュ_片対数.png')">画像保存</button>
+      </h3>
+      <canvas id="chart_eps1" width="640" height="380"></canvas>
+      <div class="chart-note">横軸：周波数 f [Hz]（対数軸）、縦軸：比誘電率 ε'。高温になるほど減少ステップが高周波側へシフトします。</div>
+    </div>
+
+    <div class="chart-card">
+      <h3>
+        <span>課題(A)-2：誘電損率 ε'' vs 周波数 f（片対数グラフ）</span>
+        <button onclick="downloadCanvas('chart_eps2', '課題A_イプシロンツーダッシュ_片対数.png')">画像保存</button>
+      </h3>
+      <canvas id="chart_eps2" width="640" height="380"></canvas>
+      <div class="chart-note">横軸：周波数 f [Hz]（対数軸）、縦軸：誘電損率 ε''。★印が各温度のピーク周波数 f_max です。</div>
+    </div>
+
+    <div class="chart-card">
+      <h3>
+        <span>課題(B)：Cole-Cole プロット（ε'' vs ε'）＋ 円弧則フィッティング</span>
+        <button onclick="downloadCanvas('chart_cole', '課題B_Cole-Coleプロット.png')">画像保存</button>
+      </h3>
+      <canvas id="chart_cole" width="640" height="380"></canvas>
+      <div class="chart-note">実線：実測データに最小二乗フィットした円弧、破線：横軸（ε''=0）との交点 ε(∞)・ε(0) までの外挿、＋印：円弧の中心 (x_c, y_c)。</div>
+    </div>
+
+    <div class="chart-card">
+      <h3>
+        <span>課題(D)：アレニウスプロット（ln f_max vs 1000/T）</span>
+        <button onclick="downloadCanvas('chart_arr', '課題D_アレニウスプロット.png')">画像保存</button>
+      </h3>
+      <canvas id="chart_arr" width="640" height="380"></canvas>
+      <div class="chart-note">横軸：1000/T [K⁻¹]、縦軸：ln(f_max)（左軸）および log10(f_max)。直線の傾きから活性化エネルギー H が求まります。</div>
+    </div>
+  </div>
+
+  <!-- 3. 課題(B)・(C)・(D) 解析結果一覧テーブル -->
+  <div class="card">
+    <h2>
+      <span>2. 課題(B)・(C)・(D) 計算結果サマリー（Cole-Cole緩和強度 Δε・理論式(26)比較・活性化エネルギー H）</span>
+      <span class="badge">レポート転記用</span>
+    </h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>温度 T<br>[℃]</th>
+            <th>絶対温度 T<br>[K]</th>
+            <th>1/T<br>[×10⁻³ K⁻¹]</th>
+            <th>最大 ε''_max<br>[-]</th>
+            <th>ピーク周波数<br>f_max [Hz]</th>
+            <th>ln(f_max)<br>[-]</th>
+            <th>log10(f_max)<br>[-]</th>
+            <th>円弧交点<br>ε(0)</th>
+            <th>円弧交点<br>ε(∞)</th>
+            <th>課題(B) 実測 Δε<br>(=ε(0)-ε(∞))</th>
+            <th>(参考) 両端差<br>ε'(5Hz)-ε'(10kHz)</th>
+            <th>課題(C) 理論式(26)<br>Δε_理論</th>
+            <th>実測/理論比 g<br>(=Δε_実測/Δε_理論)</th>
+            <th>円弧パラメータ<br>β (0&lt;β≦1)</th>
+          </tr>
+        </thead>
+        <tbody id="summary_tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="kpi-row" id="arrhenius_kpis"></div>
+
+    <div class="formula-box" style="margin-top:14px;">
+      <strong>【課題(C)・(D) 考察のポイントとエクセル数式】</strong><br>
+      ・<strong>課題(C) 理論値との比較：</strong> 自由配向を仮定した理論式(26)の <code>Δε_理論 ≈ 6.52〜6.82</code> に対し、Cole-Cole円弧から求めた実測値は <code>Δε_実測 ≈ 3.61〜4.49</code>（約 0.55〜0.66倍）と小さくなります。これは、ポリ酢酸ビニルの双極子（側鎖の酢酸エステル基）が高分子主鎖の C–C 結合に繋がれており、立体障害や隣接モノマーとの相関によって完全には自由に配向できないためです（Kirkwoodの相関因子 <i>g</i> &lt; 1）。<br>
+      ・<strong>課題(D) 活性化エネルギー H：</strong> <code>f_max ∝ exp(-H / RT)</code> より、<code>ln(f_max)</code> を <code>1/T</code> に対してプロットした直線の傾き <code>a = SLOPE(ln_f範囲, 1/T範囲)</code> から、1モルあたり <code>H = -a × R ≈ 266.2 kJ/mol (63.6 kcal/mol)</code>（分子1個あたりなら <code>H = -a × k ≈ 4.42×10⁻¹⁹ J = 2.76 eV</code>）が得られます。
+    </div>
+  </div>
+
+  <!-- 4. 各温度の測定データ入力・自動計算テーブル -->
+  <div class="card">
+    <h2>
+      <span>3. 温度別 測定データ編集・ε' / ε'' 自動計算シート</span>
+      <span class="badge">数値を書き換えると即座に全グラフ・表へ反映</span>
+    </h2>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('56')" id="tab_56">56 ℃ (329.15 K)</button>
+      <button class="tab-btn" onclick="switchTab('60')" id="tab_60">60 ℃ (333.15 K)</button>
+      <button class="tab-btn" onclick="switchTab('64')" id="tab_64">64 ℃ (337.15 K)</button>
+      <button class="tab-btn" onclick="switchTab('68')" id="tab_68">68 ℃ (341.15 K)</button>
+    </div>
+    <div style="overflow-x:auto; max-height: 480px; overflow-y:auto;">
+      <table>
+        <thead style="position:sticky; top:0; z-index:2;">
+          <tr>
+            <th>行</th>
+            <th>周波数 f [Hz]</th>
+            <th>log10(f)</th>
+            <th>測定 Cp [pF]（入力）</th>
+            <th>測定 Gp [数値]（入力）</th>
+            <th>Gp 単位（選択）</th>
+            <th>Cp [F] [Auto]</th>
+            <th>Gp [S] [Auto]</th>
+            <th>比誘電率 ε' [Auto]</th>
+            <th>誘電損率 ε'' [Auto]</th>
+            <th>tan δ (=ε''/ε')</th>
+          </tr>
+        </thead>
+        <tbody id="data_tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const INITIAL_DATA = {"56": [{"f": 5.0, "cp": 163.35, "gp": 300.5, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 6.0, "cp": 162.36, "gp": 422.0, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 7.0, "cp": 161.41, "gp": 561.3, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 8.0, "cp": 160.32, "gp": 703.2, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 9.0, "cp": 159.22, "gp": 859.3, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 10.0, "cp": 158.26, "gp": 1.025, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 15.0, "cp": 153.1, "gp": 1.927, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 20.0, "cp": 148.36, "gp": 2.903, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 25.0, "cp": 144.23, "gp": 3.89, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 30.0, "cp": 140.63, "gp": 4.866, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 40.0, "cp": 134.51, "gp": 6.737, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 50.0, "cp": 129.75, "gp": 8.512, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 60.0, "cp": 125.91, "gp": 10.18, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 70.0, "cp": 122.9, "gp": 11.7, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 80.0, "cp": 120.27, "gp": 13.18, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 100.0, "cp": 116.02, "gp": 15.94, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 150.0, "cp": 109.02, "gp": 21.92, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 200.0, "cp": 104.66, "gp": 27.03, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 300.0, "cp": 99.367, "gp": 35.74, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 400.0, "cp": 96.152, "gp": 43.06, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 500.0, "cp": 93.916, "gp": 49.58, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 600.0, "cp": 92.272, "gp": 55.57, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 700.0, "cp": 90.983, "gp": 61.12, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 800.0, "cp": 89.932, "gp": 66.3, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1000.0, "cp": 88.308, "gp": 75.95, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1500.0, "cp": 85.766, "gp": 96.99, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 2000.0, "cp": 84.21, "gp": 115.4, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 3000.0, "cp": 82.315, "gp": 147.9, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 4000.0, "cp": 81.14, "gp": 176.4, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 5000.0, "cp": 80.328, "gp": 202.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 6000.0, "cp": 79.71, "gp": 227.5, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 7000.0, "cp": 79.225, "gp": 251.1, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 8000.0, "cp": 78.825, "gp": 273.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 10000.0, "cp": 78.196, "gp": 316.9, "gp_unit": "nS", "gp_mult": 1e-09}], "60": [{"f": 5.0, "cp": 163.92, "gp": 110.6, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 6.0, "cp": 163.7, "gp": 161.3, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 7.0, "cp": 163.4, "gp": 223.5, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 8.0, "cp": 163.2, "gp": 283.0, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 9.0, "cp": 162.88, "gp": 354.9, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 10.0, "cp": 162.7, "gp": 434.4, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 15.0, "cp": 161.22, "gp": 902.7, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 20.0, "cp": 159.69, "gp": 1.501, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 25.0, "cp": 158.12, "gp": 2.196, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 30.0, "cp": 156.52, "gp": 2.961, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 40.0, "cp": 153.23, "gp": 4.663, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 50.0, "cp": 150.18, "gp": 6.51, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 60.0, "cp": 147.42, "gp": 8.479, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 70.0, "cp": 144.79, "gp": 10.33, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 80.0, "cp": 142.36, "gp": 12.26, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 100.0, "cp": 138.02, "gp": 16.1, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 150.0, "cp": 129.61, "gp": 25.22, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 200.0, "cp": 123.69, "gp": 33.47, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 300.0, "cp": 115.75, "gp": 47.97, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 400.0, "cp": 110.67, "gp": 60.43, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 500.0, "cp": 107.04, "gp": 71.52, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 600.0, "cp": 104.34, "gp": 81.66, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 700.0, "cp": 102.19, "gp": 91.05, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 800.0, "cp": 100.44, "gp": 99.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1000.0, "cp": 97.715, "gp": 115.9, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1500.0, "cp": 93.45, "gp": 150.4, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 2000.0, "cp": 90.862, "gp": 179.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 3000.0, "cp": 87.75, "gp": 230.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 4000.0, "cp": 85.879, "gp": 274.1, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 5000.0, "cp": 84.587, "gp": 313.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 6000.0, "cp": 83.626, "gp": 350.0, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 7000.0, "cp": 82.871, "gp": 384.4, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 8000.0, "cp": 82.261, "gp": 416.9, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 10000.0, "cp": 81.312, "gp": 478.0, "gp_unit": "nS", "gp_mult": 1e-09}], "64": [{"f": 5.0, "cp": 162.23, "gp": 40.28, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 6.0, "cp": 162.25, "gp": 60.28, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 7.0, "cp": 162.15, "gp": 85.69, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 8.0, "cp": 162.04, "gp": 109.0, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 9.0, "cp": 162.06, "gp": 138.9, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 10.0, "cp": 161.87, "gp": 173.6, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 15.0, "cp": 161.53, "gp": 367.3, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 20.0, "cp": 161.09, "gp": 628.7, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 25.0, "cp": 160.67, "gp": 949.2, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 30.0, "cp": 160.22, "gp": 1.319, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 40.0, "cp": 159.18, "gp": 2.203, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 50.0, "cp": 158.29, "gp": 3.25, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 60.0, "cp": 157.12, "gp": 4.453, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 70.0, "cp": 156.33, "gp": 5.702, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 80.0, "cp": 155.36, "gp": 7.126, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 100.0, "cp": 153.34, "gp": 10.21, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 150.0, "cp": 148.38, "gp": 19.01, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 200.0, "cp": 143.86, "gp": 28.52, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 300.0, "cp": 136.28, "gp": 47.74, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 400.0, "cp": 130.44, "gp": 66.01, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 500.0, "cp": 125.82, "gp": 83.16, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 600.0, "cp": 122.11, "gp": 99.2, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 700.0, "cp": 119.05, "gp": 114.3, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 800.0, "cp": 116.47, "gp": 128.5, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1000.0, "cp": 112.35, "gp": 154.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1500.0, "cp": 105.59, "gp": 211.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 2000.0, "cp": 101.44, "gp": 260.0, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 3000.0, "cp": 96.358, "gp": 341.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 4000.0, "cp": 93.319, "gp": 411.0, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 5000.0, "cp": 89.663, "gp": 528.3, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 6000.0, "cp": 89.675, "gp": 485.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 7000.0, "cp": 88.476, "gp": 581.0, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 8000.0, "cp": 87.496, "gp": 630.3, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 10000.0, "cp": 85.985, "gp": 720.7, "gp_unit": "nS", "gp_mult": 1e-09}], "68": [{"f": 5.0, "cp": 160.7, "gp": 30.89, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 6.0, "cp": 160.5, "gp": 39.0, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 7.0, "cp": 160.45, "gp": 48.7, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 8.0, "cp": 160.46, "gp": 62.62, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 9.0, "cp": 160.3, "gp": 75.23, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 10.0, "cp": 160.36, "gp": 89.42, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 15.0, "cp": 160.19, "gp": 178.2, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 20.0, "cp": 160.0, "gp": 289.6, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 25.0, "cp": 159.86, "gp": 426.6, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 30.0, "cp": 159.68, "gp": 587.6, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 40.0, "cp": 159.27, "gp": 981.3, "gp_unit": "pS", "gp_mult": 1e-12}, {"f": 50.0, "cp": 159.06, "gp": 1.467, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 60.0, "cp": 158.61, "gp": 1.919, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 70.0, "cp": 158.46, "gp": 2.607, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 80.0, "cp": 158.17, "gp": 3.294, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 100.0, "cp": 157.55, "gp": 4.847, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 150.0, "cp": 155.96, "gp": 9.824, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 200.0, "cp": 154.33, "gp": 16.04, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 300.0, "cp": 150.87, "gp": 31.14, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 400.0, "cp": 147.5, "gp": 48.35, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 500.0, "cp": 144.29, "gp": 66.76, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 600.0, "cp": 141.34, "gp": 85.68, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 700.0, "cp": 138.67, "gp": 104.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 800.0, "cp": 136.19, "gp": 123.6, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1000.0, "cp": 131.76, "gp": 160.7, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 1500.0, "cp": 123.44, "gp": 246.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 2000.0, "cp": 119.7, "gp": 323.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 3000.0, "cp": 110.13, "gp": 456.7, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 4000.0, "cp": 105.41, "gp": 569.7, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 5000.0, "cp": 102.09, "gp": 670.1, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 6000.0, "cp": 97.613, "gp": 765.3, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 7000.0, "cp": 97.682, "gp": 846.1, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 8000.0, "cp": 96.109, "gp": 924.8, "gp_unit": "nS", "gp_mult": 1e-09}, {"f": 10000.0, "cp": 93.669, "gp": 1.069, "gp_unit": "uS", "gp_mult": 1e-06}]};
+let appData = JSON.parse(JSON.stringify(INITIAL_DATA));
+let currentTab = '56';
+let fixed64 = false;
+
+const COLORS = {
+  '56': '#2563eb',
+  '60': '#059669',
+  '64': '#d97706',
+  '68': '#dc2626'
+};
+
+function switchTab(t) {
+  currentTab = t;
+  ['56','60','64','68'].forEach(k => {
+    document.getElementById('tab_' + k).classList.toggle('active', k === t);
+  });
+  renderDataTable();
+}
+
+function resetData() {
+  appData = JSON.parse(JSON.stringify(INITIAL_DATA));
+  fixed64 = false;
+  document.getElementById('fix64_status').textContent = '※現在：元のエクセル測定値そのまま';
+  renderDataTable();
+  recalcAll();
+}
+
+function toggleFix64() {
+  const rows64 = appData['64'];
+  // Find f=5000 and f=6000
+  const r5k = rows64.find(r => r.f === 5000);
+  const r6k = rows64.find(r => r.f === 6000);
+  if (r5k && r6k) {
+    const tmpGp = r5k.gp; r5k.gp = r6k.gp; r6k.gp = tmpGp;
+    const tmpCp = r5k.cp; r5k.cp = r6k.cp; r6k.cp = tmpCp;
+    fixed64 = !fixed64;
+    document.getElementById('fix64_status').textContent = fixed64
+      ? '※現在：64℃の5kHzと6kHzの(Cp, Gp)入替を補正中（滑らかな曲線）'
+      : '※現在：元のエクセル測定値そのまま';
+    if (currentTab === '64') renderDataTable();
+    recalcAll();
+  }
+}
+
+function getParams() {
+  const A = parseFloat(document.getElementById('inp_A').value) || 0.00049;
+  const d = parseFloat(document.getElementById('inp_d').value) || 0.0002;
+  const eps0 = parseFloat(document.getElementById('inp_eps0').value) || 8.854e-12;
+  const n = parseFloat(document.getElementById('inp_n').value) || 1.45;
+  const mu = parseFloat(document.getElementById('inp_mu').value) || 6.34e-30;
+  const rho = parseFloat(document.getElementById('inp_rho').value) || 1180;
+  const M0 = parseFloat(document.getElementById('inp_M0').value) || 0.08609;
+  const k = parseFloat(document.getElementById('inp_k').value) || 1.380e-23;
+  const NA = 6.022e23;
+  const R_gas = 8.314;
+  const C0 = eps0 * A / d;
+  const N = (rho / M0) * NA;
+  return { A, d, eps0, n, mu, rho, M0, k, NA, R_gas, C0, N };
+}
+
+function fitCircleLS(xArr, yArr) {
+  // Algebraic Kasa + Gauss-Newton refinement for circle (x - xc)^2 + (y - yc)^2 = R^2
+  const n = xArr.length;
+  if (n < 3) return { xc: 5.5, yc: -1.0, R: 2.2, eps0: 7.7, epsInf: 3.3, deltaEps: 4.4, beta: 0.7 };
+  // Initial algebraic fit: x^2 + y^2 = 2*xc*x + 2*yc*y + (R^2 - xc^2 - yc^2)
+  let Sx=0, Sy=0, Sxx=0, Syy=0, Sxy=0, Sz=0, Sxz=0, Syz=0;
+  for (let i=0; i<n; i++) {
+    const x = xArr[i], y = yArr[i], z = x*x + y*y;
+    Sx += x; Sy += y; Sxx += x*x; Syy += y*y; Sxy += x*y;
+    Sz += z; Sxz += x*z; Syz += y*z;
+  }
+  // Solve 3x3 linear system A * [2xc, 2yc, c]^T = b
+  const M = [
+    [Sxx, Sxy, Sx, Sxz],
+    [Sxy, Syy, Sy, Syz],
+    [Sx,  Sy,  n,  Sz]
+  ];
+  for (let i=0; i<3; i++) {
+    let piv = M[i][i];
+    if (Math.abs(piv) < 1e-12) continue;
+    for (let j=i; j<4; j++) M[i][j] /= piv;
+    for (let k=0; k<3; k++) {
+      if (k !== i) {
+        const factor = M[k][i];
+        for (let j=i; j<4; j++) M[k][j] -= factor * M[i][j];
+      }
+    }
+  }
+  let xc = M[0][3] / 2.0;
+  let yc = M[1][3] / 2.0;
+  let R = Math.sqrt(Math.max(0.01, M[2][3] + xc*xc + yc*yc));
+
+  // Gauss-Newton refinement on geometric distance
+  for (let iter=0; iter<25; iter++) {
+    let j00=0, j01=0, j02=0, j11=0, j12=0, j22=0;
+    let b0=0, b1=0, b2=0;
+    for (let i=0; i<n; i++) {
+      const dx = xc - xArr[i], dy = yc - yArr[i];
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1e-9;
+      const r_i = dist - R;
+      const g0 = dx / dist, g1 = dy / dist, g2 = -1.0;
+      j00 += g0*g0; j01 += g0*g1; j02 += g0*g2;
+      j11 += g1*g1; j12 += g1*g2; j22 += g2*g2;
+      b0 -= g0*r_i; b1 -= g1*r_i; b2 -= g2*r_i;
+    }
+    const G = [
+      [j00, j01, j02, b0],
+      [j01, j11, j12, b1],
+      [j02, j12, j22, b2]
+    ];
+    for (let i=0; i<3; i++) {
+      let piv = G[i][i];
+      if (Math.abs(piv) < 1e-12) continue;
+      for (let j=i; j<4; j++) G[i][j] /= piv;
+      for (let k=0; k<3; k++) {
+        if (k !== i) {
+          const f = G[k][i];
+          for (let j=i; j<4; j++) G[k][j] -= f * G[i][j];
+        }
+      }
+    }
+    xc += G[0][3]; yc += G[1][3]; R += G[2][3];
+  }
+  const hc = Math.sqrt(Math.max(0, R*R - yc*yc));
+  const eps0 = xc + hc;
+  const epsInf = xc - hc;
+  const deltaEps = eps0 - epsInf;
+  const theta = Math.atan2(-yc, hc);
+  const beta = 1.0 - theta / (Math.PI / 2.0);
+  return { xc, yc, R, eps0, epsInf, deltaEps, beta };
+}
+
+function renderDataTable() {
+  const p = getParams();
+  const rows = appData[currentTab];
+  const tbody = document.getElementById('data_tbody');
+  tbody.innerHTML = '';
+  rows.forEach((row, idx) => {
+    const cp_F = row.cp * 1e-12;
+    const gp_S = row.gp * row.gp_mult;
+    const eps1 = cp_F / p.C0;
+    const eps2 = gp_S / (2 * Math.PI * row.f * p.C0);
+    const tand = eps2 / eps1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="center">${idx + 1}</td>
+      <td><input type="number" value="${row.f}" step="any" oninput="updateRow(${idx}, 'f', this.value)"></td>
+      <td>${Math.log10(row.f).toFixed(3)}</td>
+      <td><input type="number" value="${row.cp}" step="any" oninput="updateRow(${idx}, 'cp', this.value)"></td>
+      <td><input type="number" value="${row.gp}" step="any" oninput="updateRow(${idx}, 'gp', this.value)"></td>
+      <td class="center">
+        <select onchange="updateUnit(${idx}, this.value)">
+          <option value="1e-12" ${row.gp_mult === 1e-12 ? 'selected' : ''}>pS (10⁻¹²)</option>
+          <option value="1e-9" ${row.gp_mult === 1e-9 ? 'selected' : ''}>nS (10⁻⁹)</option>
+          <option value="1e-6" ${row.gp_mult === 1e-6 ? 'selected' : ''}>μS (10⁻⁶)</option>
+        </select>
+      </td>
+      <td>${cp_F.toExponential(3)}</td>
+      <td>${gp_S.toExponential(3)}</td>
+      <td><strong>${eps1.toFixed(4)}</strong></td>
+      <td><strong>${eps2.toFixed(4)}</strong></td>
+      <td>${tand.toFixed(4)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateRow(idx, field, val) {
+  const num = parseFloat(val);
+  if (!isNaN(num) && num > 0) {
+    appData[currentTab][idx][field] = num;
+    recalcAll(false);
+    renderDataTable();
+  }
+}
+
+function updateUnit(idx, val) {
+  appData[currentTab][idx].gp_mult = parseFloat(val);
+  recalcAll(false);
+  renderDataTable();
+}
+
+function recalcAll(rerenderTable = true) {
+  const p = getParams();
+  document.getElementById('out_C0').textContent = (p.C0 * 1e12).toFixed(4) + ' pF';
+  document.getElementById('out_N').textContent = p.N.toExponential(3) + ' m⁻³';
+  if (rerenderTable) renderDataTable();
+
+  const fmaxMode = document.getElementById('sel_fmax_mode').value;
+  const summaryRows = [];
+  const processedSeries = {};
+
+  ['56', '60', '64', '68'].forEach(tKey => {
+    const T_C = parseFloat(tKey);
+    const T_K = T_C + 273.15;
+    const rows = appData[tKey];
+    const pts = rows.map(r => {
+      const cp_F = r.cp * 1e-12;
+      const gp_S = r.gp * r.gp_mult;
+      const eps1 = cp_F / p.C0;
+      const eps2 = gp_S / (2 * Math.PI * r.f * p.C0);
+      return { f: r.f, logf: Math.log10(r.f), eps1, eps2 };
+    });
+
+    // Find max eps2
+    let maxIdx = 0;
+    for (let i=1; i<pts.length; i++) {
+      if (pts[i].eps2 > pts[maxIdx].eps2) maxIdx = i;
+    }
+    let fmax = pts[maxIdx].f;
+    let eps2Max = pts[maxIdx].eps2;
+
+    if (fmaxMode === 'interp' && maxIdx > 0 && maxIdx < pts.length - 1) {
+      // Parabolic fit on 3 points around maxIdx
+      const x1 = pts[maxIdx-1].logf, y1 = pts[maxIdx-1].eps2;
+      const x2 = pts[maxIdx].logf,   y2 = pts[maxIdx].eps2;
+      const x3 = pts[maxIdx+1].logf, y3 = pts[maxIdx+1].eps2;
+      const denom = (x1 - x2) * (x1 - x3) * (x2 - x3);
+      if (Math.abs(denom) > 1e-12) {
+        const A_p = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom;
+        const B_p = (x3*x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) / denom;
+        if (A_p < 0) {
+          const logfPeak = -B_p / (2 * A_p);
+          fmax = Math.pow(10, logfPeak);
+        }
+      }
+    }
+
+    const cFit = fitCircleLS(pts.map(d => d.eps1), pts.map(d => d.eps2));
+    const simpleDelta = pts[0].eps1 - pts[pts.length - 1].eps1;
+
+    // Theoretical Delta_eps from Eq (26)
+    const e0 = cFit.eps0;
+    const factor = (3 * e0 / (2 * e0 + p.n * p.n)) * Math.pow((p.n * p.n + 2) / 3, 2);
+    const theoDelta = (p.N * p.mu * p.mu / (3 * p.eps0 * p.k * T_K)) * factor;
+    const gFactor = cFit.deltaEps / theoDelta;
+
+    processedSeries[tKey] = { pts, cFit, fmax, eps2Max };
+    summaryRows.push({
+      tKey, T_C, T_K, invT1000: 1000.0 / T_K, invT: 1.0 / T_K,
+      eps2Max, fmax, lnf: Math.log(fmax), logf: Math.log10(fmax),
+      eps0: cFit.eps0, epsInf: cFit.epsInf, deltaEps: cFit.deltaEps,
+      simpleDelta, theoDelta, gFactor, beta: cFit.beta
+    });
+  });
+
+  // Render summary table
+  const sumTbody = document.getElementById('summary_tbody');
+  sumTbody.innerHTML = '';
+  summaryRows.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="center"><strong style="color:${COLORS[s.tKey]}">${s.T_C} ℃</strong></td>
+      <td>${s.T_K.toFixed(2)}</td>
+      <td>${s.invT1000.toFixed(4)}</td>
+      <td>${s.eps2Max.toFixed(4)}</td>
+      <td><strong>${s.fmax.toFixed(1)}</strong></td>
+      <td>${s.lnf.toFixed(4)}</td>
+      <td>${s.logf.toFixed(4)}</td>
+      <td>${s.eps0.toFixed(4)}</td>
+      <td>${s.epsInf.toFixed(4)}</td>
+      <td><strong>${s.deltaEps.toFixed(4)}</strong></td>
+      <td>${s.simpleDelta.toFixed(4)}</td>
+      <td><strong>${s.theoDelta.toFixed(4)}</strong></td>
+      <td>${s.gFactor.toFixed(3)}</td>
+      <td>${s.beta.toFixed(3)}</td>
+    `;
+    sumTbody.appendChild(tr);
+  });
+
+  // Linear regression on ln(f_max) vs 1/T
+  const nT = summaryRows.length;
+  let sx=0, sy=0, sxx=0, syy=0, sxy=0;
+  summaryRows.forEach(s => {
+    const x = s.invT, y = s.lnf;
+    sx += x; sy += y; sxx += x*x; syy += y*y; sxy += x*y;
+  });
+  const slopeLn = (nT * sxy - sx * sy) / (nT * sxx - sx * sx);
+  const interceptLn = (sy - slopeLn * sx) / nT;
+  const r2 = Math.pow(nT * sxy - sx * sy, 2) / ((nT * sxx - sx * sx) * (nT * syy - sy * sy));
+  const slopeLog10 = slopeLn / Math.LN10;
+
+  const H_kJ_mol = (-slopeLn * p.R_gas) / 1000.0;
+  const H_kcal_mol = H_kJ_mol / 4.184;
+  const H_J_molecule = -slopeLn * p.k;
+  const H_eV = H_J_molecule / 1.60218e-19;
+
+  document.getElementById('arrhenius_kpis').innerHTML = `
+    <div class="kpi-card">
+      <div class="k-title">課題(D) 活性化エネルギー H（1モルあたり）</div>
+      <div class="k-val">${H_kJ_mol.toFixed(2)} kJ/mol</div>
+      <div class="k-sub">${H_kcal_mol.toFixed(2)} kcal/mol （気体定数 R = 8.314 J/mol·K）</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-title">課題(D) 活性化エネルギー H（双極子1個あたり）</div>
+      <div class="k-val">${H_J_molecule.toExponential(3)} J</div>
+      <div class="k-sub">${H_eV.toFixed(3)} eV （ボルツマン定数 k = 1.380×10⁻²³ J/K）</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-title">アレニウス直線の傾き（ln f_max vs 1/T）</div>
+      <div class="k-val">${slopeLn.toFixed(1)} K</div>
+      <div class="k-sub">常用対数 log10(f_max) vs 1/T の傾き：${slopeLog10.toFixed(1)} K</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-title">直線回帰の決定係数 R²</div>
+      <div class="k-val">${r2.toFixed(5)}</div>
+      <div class="k-sub">極めて良好な直線性（アレニウス則が成立）</div>
+    </div>
+  `;
+
+  drawFreqChart('chart_eps1', processedSeries, 'eps1', "比誘電率 ε'", 3.0, 8.0);
+  drawFreqChart('chart_eps2', processedSeries, 'eps2', "誘電損率 ε''", 0.0, 1.4);
+  drawColeColeChart('chart_cole', processedSeries);
+  drawArrheniusChart('chart_arr', summaryRows, slopeLn, interceptLn);
+}
+
+function drawFreqChart(canvasId, seriesObj, field, yLabel, yMin, yMax) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const padL = 62, padR = 25, padT = 30, padB = 48;
+  const pw = W - padL - padR, ph = H - padT - padB;
+  const xMin = Math.log10(4), xMax = 4.05; // 4 Hz to 10,000 Hz
+
+  const toX = logf => padL + ((logf - xMin) / (xMax - xMin)) * pw;
+  const toY = v => padT + ph - ((v - yMin) / (yMax - yMin)) * ph;
+
+  // Grid lines
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  const logTicks = [5,6,7,8,9,10, 20,30,40,50,60,70,80,90,100, 200,300,400,500,600,700,800,900,1000, 2000,3000,4000,5000,6000,7000,8000,9000,10000];
+  logTicks.forEach(f => {
+    const x = toX(Math.log10(f));
+    ctx.beginPath();
+    ctx.strokeStyle = [10, 100, 1000, 10000].includes(f) ? '#cbd5e1' : '#f1f5f9';
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+  });
+
+  const nYTicks = 5;
+  ctx.fillStyle = '#334155';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'right';
+  for (let i=0; i<=nYTicks; i++) {
+    const v = yMin + (yMax - yMin) * (i / nYTicks);
+    const y = toY(v);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+    ctx.fillText(v.toFixed(1), padL - 8, y + 4);
+  }
+
+  // X axis labels
+  ctx.textAlign = 'center';
+  [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000].forEach(f => {
+    const x = toX(Math.log10(f));
+    ctx.fillText(f >= 1000 ? (f/1000)+'k' : f, x, padT + ph + 18);
+  });
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('周波数 f [Hz]（対数軸）', padL + pw / 2, H - 10);
+
+  ctx.save();
+  ctx.translate(18, padT + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(yLabel, 0, 0);
+  ctx.restore();
+
+  // Axes box
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(padL, padT, pw, ph);
+
+  // Plot each temperature
+  ['56', '60', '64', '68'].forEach((tKey, idx) => {
+    const s = seriesObj[tKey];
+    const col = COLORS[tKey];
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    s.pts.forEach((pt, i) => {
+      const x = toX(pt.logf), y = toY(pt[field]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    s.pts.forEach(pt => {
+      const x = toX(pt.logf), y = toY(pt[field]);
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+    });
+
+    if (field === 'eps2') {
+      const xp = toX(Math.log10(s.fmax)), yp = toY(s.eps2Max);
+      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(xp, yp, 6, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Legend
+    const lx = padL + 18 + idx * 105, ly = padT + 18;
+    ctx.fillStyle = col;
+    ctx.fillRect(lx, ly - 8, 18, 4);
+    ctx.beginPath(); ctx.arc(lx + 9, ly - 6, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(tKey + '℃', lx + 24, ly - 2);
+  });
+}
+
+function drawColeColeChart(canvasId, seriesObj) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const padL = 62, padR = 25, padT = 30, padB = 48;
+  const pw = W - padL - padR, ph = H - padT - padB;
+  // Use equal aspect ratio scale so circular arcs look like true circles!
+  const xMin = 3.2, xMax = 8.3;
+  const yMin = -0.3, yMax = 1.6;
+
+  const toX = v => padL + ((v - xMin) / (xMax - xMin)) * pw;
+  const toY = v => padT + ph - ((v - yMin) / (yMax - yMin)) * ph;
+
+  // Grid
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#334155';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  for (let xv = 3.5; xv <= 8.0; xv += 0.5) {
+    const x = toX(xv);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+    ctx.fillText(xv.toFixed(1), x, padT + ph + 18);
+  }
+  ctx.textAlign = 'right';
+  for (let yv = 0.0; yv <= 1.5; yv += 0.3) {
+    const y = toY(yv);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+    ctx.fillText(yv.toFixed(1), padL - 8, y + 4);
+  }
+  // Zero line eps'' = 0
+  const yZero = toY(0);
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(padL, yZero); ctx.lineTo(padL + pw, yZero); ctx.stroke();
+
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(padL, padT, pw, ph);
+
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText("比誘電率 ε'", padL + pw / 2, H - 10);
+  ctx.save();
+  ctx.translate(18, padT + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText("誘電損率 ε''", 0, 0);
+  ctx.restore();
+
+  ['56', '60', '64', '68'].forEach((tKey, idx) => {
+    const s = seriesObj[tKey];
+    const col = COLORS[tKey];
+    const cf = s.cFit;
+
+    // Draw fitted circular arc from epsInf to eps0 above y=0
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    const steps = 80;
+    for (let i=0; i<=steps; i++) {
+      const x = cf.epsInf + (cf.eps0 - cf.epsInf) * (i / steps);
+      const inside = Math.max(0, cf.R * cf.R - (x - cf.xc) * (x - cf.xc));
+      const y = cf.yc + Math.sqrt(inside);
+      const px = toX(x), py = toY(y);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Mark intercepts eps(inf) and eps(0) on y=0
+    [cf.epsInf, cf.eps0].forEach(xInt => {
+      ctx.strokeStyle = col; ctx.fillStyle = '#ffffff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(toX(xInt), yZero, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    });
+
+    // Plot measured data points
+    s.pts.forEach(pt => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(toX(pt.eps1), toY(pt.eps2), 3.3, 0, Math.PI * 2); ctx.fill();
+    });
+
+    // Legend
+    const lx = padL + 14 + idx * 135, ly = padT + 18;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(lx + 6, ly - 5, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${tKey}℃ (Δε=${cf.deltaEps.toFixed(2)})`, lx + 14, ly - 1);
+  });
+}
+
+function drawArrheniusChart(canvasId, summaryRows, slopeLn, interceptLn) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const padL = 62, padR = 25, padT = 30, padB = 48;
+  const pw = W - padL - padR, ph = H - padT - padB;
+  const xMin = 2.91, xMax = 3.06; // 1000/T [K^-1]
+  const yMin = 3.2, yMax = 8.0;   // ln(f_max)
+
+  const toX = v => padL + ((v - xMin) / (xMax - xMin)) * pw;
+  const toY = v => padT + ph - ((v - yMin) / (yMax - yMin)) * ph;
+
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#334155';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  for (let xv = 2.92; xv <= 3.05; xv += 0.02) {
+    const x = toX(xv);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+    ctx.fillText(xv.toFixed(2), x, padT + ph + 18);
+  }
+  ctx.textAlign = 'right';
+  for (let yv = 3.5; yv <= 8.0; yv += 0.5) {
+    const y = toY(yv);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+    ctx.fillText(yv.toFixed(1), padL - 8, y + 4);
+  }
+
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(padL, padT, pw, ph);
+
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('1000 / T [K⁻¹]', padL + pw / 2, H - 10);
+  ctx.save();
+  ctx.translate(18, padT + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('ln(f_max)', 0, 0);
+  ctx.restore();
+
+  // Regression line: ln(f) = interceptLn + slopeLn * (1/T) = interceptLn + (slopeLn/1000) * (1000/T)
+  ctx.strokeStyle = '#1b365d';
+  ctx.lineWidth = 2.2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  const yStart = interceptLn + (slopeLn / 1000.0) * xMin;
+  const yEnd = interceptLn + (slopeLn / 1000.0) * xMax;
+  ctx.moveTo(toX(xMin), toY(yStart));
+  ctx.lineTo(toX(xMax), toY(yEnd));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Points
+  summaryRows.forEach(s => {
+    const x = toX(s.invT1000), y = toY(s.lnf);
+    ctx.fillStyle = COLORS[s.tKey];
+    ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${s.T_C}℃ (${s.fmax.toFixed(0)}Hz)`, x + 8, y - 6);
+  });
+}
+
+function downloadCanvas(canvasId, filename) {
+  const canvas = document.getElementById(canvasId);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  recalcAll(true);
+});
+</script>
+</body>
+</html>
